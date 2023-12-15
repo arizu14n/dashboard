@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es-mx">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./estilos.css">
+    <title>Tablero de Control</title>
+</head>
+<body>
+    <div class="container">
+        <div class="navegacion">
+            <ul>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-building"></i></span>
+                        <span class="titulo">AZ & Co</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-chart-line"></i></span>
+                        <span class="titulo">Tablero de Control</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-user"></i></i></span>
+                        <span class="titulo">Clientes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-regular fa-comment"></i></span>
+                        <span class="titulo">Mensajes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-sharp fa-regular fa-question"></i></span>
+                        <span class="titulo">Ayuda</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-gear"></i></span>
+                        <span class="titulo">Configuración</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-lock"></i></span>
+                        <span class="titulo">Contraseña</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <span class="icono"><i class="fa-solid fa-right-from-bracket"></i></span>
+                        <span class="titulo">Cerrar Sesión</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+<!-- sección principal-->
+        <div class="principal">
+            <div class="barrasuperior">
+                <div class="toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <!-- búsquedas-->
+                <div class="buscar">
+                    <label>
+                        <input type="text" placeholder="Buscar ..." name="buscar" id="textoBusqueda">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </label>
+                </div>
+                <!-- imagen de usuario-->
+                <div class="usuario">
+                    <img src="./imgs/perfil1.jpg" alt="imagen de perfil">
+                </div>
+            </div>
+            <!-- tarjetas-->
+            <div class="cards">
+                <div class="card">
+                    <div>
+                        <div class="numeros">1500</div>
+                        <div class="cardName">Visitas Diarias</div>
+                    </div>
+                        <div class="iconBox">
+                        <i class="fa-regular fa-eye"></i>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <div class="numeros">100</div>
+                        <div class="cardName">Ventas</div>
+                    </div>
+                    <div class="iconBox">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <div class="numeros">500</div>
+                        <div class="cardName">Comentarios</div>
+                    </div>
+                    <div class="iconBox">
+                        <i class="fa-regular fa-comments"></i>
+                    </div>
+                </div>
+                <div class="card">
+                    <div>
+                        <div class="numeros">$ 140000</div>
+                        <div class="cardName">Facturación</div>
+                    </div>
+                    <div class="iconBox">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                </div>
+            </div>
+            <!-- Detalle de pedidos-->
+            <div class="detalles">
+                <div class="ordenesRecientes">
+                    <div class="encabezado">
+                        <h2>Pedidos Recientes</h2>
+                        <a href="#" class="boton">Ver Todo</a>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <td>Nombre</td>
+                                <td>Precio</td>
+                                <td>Forma de Pago</td>
+                                <td>Estado</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Heladera c/ freezer Aurora</td>
+                                <td>$ 145000</td>
+                                <td>Contado</td>
+                                <td><span class="estado Entregado">Entregado</span></td>
+                            </tr>
+                            <tr>
+                                <td>Parlantes Bluetooh</td>
+                                <td>$ 45000</td>
+                                <td>Tarjeta</td>
+                                <td><span class="estado Devuelto">Devuelto</span></td>
+                            </tr>
+                            <tr>
+                                <td>Auriculares Sony</td>
+                                <td>$ 15000</td>
+                                <td>Contado</td>
+                                <td><span class="estado EnProgreso">En Progreso</span></td>
+                            </tr>
+                            <tr>
+                                <td>Notebook DELL Latitude E5000</td>
+                                <td>$ 545000</td>
+                                <td>Cheques 0-30-60</td>
+                                <td><span class="estado EnStock">En Stock</span></td>
+                            </tr>
+                            <tr>
+                                <td>Bicicleta Venzo Mod. "Viento"</td>
+                                <td>$ 158000</td>
+                                <td>Contado</td>
+                                <td><span class="estado Devuelto">Devuelto</span></td>
+                            </tr>
+                            <tr>
+                                <td>Combo Actualización PC i7-12va Gen.</td>
+                                <td>$ 450000</td>
+                                <td>Cuenta Corriente</td>
+                                <td><span class="estado EnProgreso">En Progreso</span></td>
+                            </tr>
+                            <tr>
+                                <td>Cocina Orbis Convecta</td>
+                                <td>$ 470000</td>
+                                <td>Tarjeta</td>
+                                <td><span class="estado EnStock">En Stock</span></td>
+                            </tr>
+                            <tr>
+                                <td>Hidrolavadora De-Walt</td>
+                                <td>$ 95000</td>
+                                <td>Cheques 0-30-60</td>
+                                <td><span class="estado Entregado">Entregado</span></td>
+                            </tr>
+                            <tr>
+                                <td>Impresora Epson L-780</td>
+                                <td>$ 35000</td>
+                                <td>Contado</td>
+                                <td><span class="estado EnProgreso">En Progreso</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Nuevos Clientes-->
+                <div class="clientesNuevos">
+                    <div class="cards">
+                        <h2>Clientes Nuevos</h2>
+                    </div>
+                    <table>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil2.jpg"></div></td>
+                            <td><h4>Damiana<br><span>Italia</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil3.jpg"></div></td>
+                            <td><h4>Alexa<br><span>Estados Unidos</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil4.jpg"></div></td>
+                            <td><h4>Javier<br><span>Argentina</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil5.jpg"></div></td>
+                            <td><h4>Alejandra<br><span>España</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil6.jpg"></div></td>
+                            <td><h4>Victor<br><span>Colombia</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil5.jpg"></div></td>
+                            <td><h4>Alejandra<br><span>España</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil6.jpg"></div></td>
+                            <td><h4>Victor<br><span>Colombia</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil6.jpg"></div></td>
+                            <td><h4>Victor<br><span>Colombia</span></h4></td>
+                        </tr>
+                        <tr>
+                            <td width="60px"><div class="imgBx"><img src="./imgs/perfil6.jpg"></div></td>
+                            <td><h4>Victor<br><span>Colombia</span></h4></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="https://kit.fontawesome.com/f45ddd3ffd.js" crossorigin="anonymous"></script>
+    <script src="./script.js"></script>
+</body>
+</html>
