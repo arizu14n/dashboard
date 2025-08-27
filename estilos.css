@@ -327,37 +327,49 @@ body{
 .detalles .ordenesRecientes table tr td:nth-child(3){
     text-align: center;
 }
+.estado.Completado,
 .estado.Entregado{
-    padding: 6px;
-    background: green;
+    padding: 2px 10px;
+    background: #28a745; /* Verde */
     color: var(--GrisClaro);
     font-size: 14px;
-    border-radius: 20px;
+    border-radius: 6px;
+    font-weight: 500;
 }
 .estado.EnStock{
-    padding: 6px;
+    padding: 2px 10px;
     background: var(--blanco);
     color: var(--Negro1);
     font-size: 14px;
-    border-radius: 20px;
+    border-radius: 6px;
+    font-weight: 500;
 }
 .estado.EnProgreso{
-    padding: 6px;
-    background: greenyellow;
+    padding: 2px 10px;
+    background: #ffc107; /* Amarillo */
     color: var(--Negro1);
     font-size: 14px;
-    border-radius: 20px;
+    border-radius: 6px;
+    font-weight: 500;
 }
+.estado.Pendiente{
+    padding: 2px 10px;
+    background: #17a2b8; /* Info/Celeste */
+    color: var(--blanco);
+    font-size: 14px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.estado.Cancelado,
 .estado.Devuelto{
-    padding: 6px;
-    background: red;
+    padding: 2px 10px;
+    background: #dc3545; /* Rojo */
     color: var(--GrisClaro);
     font-size: 14px;
-    border-radius: 20px;
+    border-radius: 6px;
+    font-weight: 500;
 }
-.estado {
-    font-weight: bold;
-}
+
 .clientesNuevos{
     position: relative;
     display: grid;
@@ -410,15 +422,6 @@ body{
 .clientesNuevos table tr:hover td h4 span{
     font-size: 14px;
     color: var(--Negro2);
-}
-
-/* Estilos de Formularios */
-.form-container {
-    background: var(--GrisClaro);
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 20px;
-    border: 1px solid var(--Gris);
 }
 
 /* Media Queries*/
@@ -482,8 +485,9 @@ body{
     }
 }
 
-/* Estilos para botones de acción */
-.btn-edit, .btn-delete {
+/* === Estilos para Modales y Formularios === */
+
+.btn-edit, .btn-delete, .btn-view {
     padding: 5px 10px;
     color: var(--blanco);
     border: none;
@@ -493,17 +497,168 @@ body{
     font-size: 14px;
     min-width: 80px;
     text-align: center;
+    margin-bottom: 5px;
 }
 
-.btn-edit {
-    background-color: #008CBA; /* Azul */
-    margin-bottom: 10px;
+.btn-edit { background-color: #008CBA; } /* Azul */
+.btn-delete { background-color: #f44336; } /* Rojo */
+.btn-view { background-color: #5cb85c; } /* Verde */
+.btn-edit:hover, .btn-delete:hover, .btn-view:hover { opacity: 0.8; }
+
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1001; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.6); 
 }
 
-.btn-delete {
-    background-color: #f44336; /* Rojo */
+.modal-content {
+    background-color: var(--GrisClaro);
+    margin: 10% auto;
+    padding: 25px;
+    border: 1px solid var(--Gris);
+    width: 80%;
+    max-width: 700px;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation: fadeIn 0.3s;
 }
 
-.btn-edit:hover, .btn-delete:hover {
-    opacity: 0.8;
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.modal-content h2 {
+    color: var(--Negro1);
+    margin-bottom: 20px;
+}
+
+.close-button {
+    color: var(--Negro2);
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover { color: var(--Negro1); }
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--Negro1);
+    font-weight: 500;
+}
+
+.form-group input[type="text"], 
+.form-group input[type="number"], 
+.form-group input[type="email"],
+.form-group select, 
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--Gris);
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: var(--blanco);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-footer {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    font-size: 16px;
+    margin-left: 10px;
+}
+
+.btn-guardar {
+    background-color: #28a745;
+}
+
+.btn-cancelar {
+    background-color: #6c757d;
+}
+
+/* Estilos específicos para el formulario de pedidos */
+.add-item-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: var(--Gris);
+    border-radius: 8px;
+}
+
+.add-item-form select, .add-item-form input {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid var(--Negro2);
+}
+
+.add-item-form select { flex-grow: 1; }
+.add-item-form input { width: 100px; }
+
+#currentOrderItemsTable {
+    width: 100%;
+    margin-top: 15px;
+    border-collapse: collapse;
+}
+
+#currentOrderItemsTable thead tr {
+    background-color: var(--Negro2);
+    color: var(--blanco);
+}
+
+#currentOrderItemsTable th, #currentOrderItemsTable td {
+    padding: 12px 10px;
+    border: 1px solid var(--Gris);
+    text-align: left;
+}
+
+#currentOrderItemsTable tbody tr:nth-child(even) {
+    background-color: #e9ecef;
+}
+
+.total-container {
+    text-align: right;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-top: 20px;
+    color: var(--Negro1);
+}
+
+.btn-remove-item {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
 }

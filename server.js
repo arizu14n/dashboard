@@ -112,27 +112,93 @@ async function connectAndInitializeDb() {
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='orders' and xtype='U')
             CREATE TABLE orders (
                 id INT IDENTITY(1,1) PRIMARY KEY,
+                numero_pedido AS 'PED' + RIGHT('00000' + CAST(id AS VARCHAR(5)), 5) PERSISTED, -- Columna computada para el número de pedido
                 customer_id INT NOT NULL,
                 order_date DATETIME DEFAULT GETDATE(),
                 total_amount DECIMAL(10, 2) NOT NULL,
                 status NVARCHAR(50) DEFAULT 'Pendiente',
+                forma_pago NVARCHAR(50) NOT NULL,
                 FOREIGN KEY (customer_id) REFERENCES customers(id)
             );
         `;
         await sql.query(createOrdersTableQuery);
         console.log('Tabla orders verificada/creada.');
 
-        // Insert sample data for orders only if the table is empty
-        const countOrdersResult = await sql.query`SELECT COUNT(*) AS count FROM orders`;
-        if (countOrdersResult.recordset[0].count === 0) {
-            const requestOrders = new sql.Request(); // Use a new request object
-            // Assuming customer with id 1 and 2 exist from previous inserts
-            await requestOrders.query`INSERT INTO orders (customer_id, total_amount, status) VALUES (1, 1275.50, 'Completado')`;
-            await requestOrders.query`INSERT INTO orders (customer_id, total_amount, status) VALUES (2, 30.00, 'Pendiente')`;
-            console.log('Datos de ejemplo insertados en la tabla orders.');
-        } else {
-            console.log('La tabla orders ya contiene datos.');
-        }
+        // --- Parche para actualizar la tabla orders si ya existía ---
+        const checkOrderColumnsQuery = `
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE Name = N'forma_pago' AND Object_ID = Object_ID(N'orders'))
+            BEGIN
+                ALTER TABLE orders ADD forma_pago NVARCHAR(50) NOT NULL DEFAULT 'Contado';
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.computed_columns WHERE Name = N'numero_pedido' AND object_id = OBJECT_ID(N'orders'))
+            BEGIN
+                ALTER TABLE orders ADD numero_pedido AS 'PED' + RIGHT('00000' + CAST(id AS VARCHAR(5)), 5) PERSISTED;
+            END
+        `;
+        await sql.query(checkOrderColumnsQuery);
+        console.log('Columnas de la tabla orders verificadas/parcheadas.');
+        // --- Fin del parche ---
+
+        // --- Parche para corregir Foreign Keys con borrado en cascada incorrecto ---
+        const fixConstraintsQuery = `
+            -- 1. Corregir FK de orders a customers (NO DEBE SER CASCADE)
+            DECLARE @fk_orders_customers_name NVARCHAR(128);
+            SELECT @fk_orders_customers_name = fk.name
+            FROM sys.foreign_keys fk
+            WHERE fk.parent_object_id = OBJECT_ID('orders') AND fk.referenced_object_id = OBJECT_ID('customers');
+
+            IF @fk_orders_customers_name IS NOT NULL
+            BEGIN
+                EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @fk_orders_customers_name);
+                EXEC('ALTER TABLE orders ADD FOREIGN KEY (customer_id) REFERENCES customers(id)');
+            END
+
+            -- 2. Corregir FK de order_details a products (NO DEBE SER CASCADE)
+            DECLARE @fk_details_products_name NVARCHAR(128);
+            SELECT @fk_details_products_name = fk.name
+            FROM sys.foreign_keys fk
+            WHERE fk.parent_object_id = OBJECT_ID('order_details') AND fk.referenced_object_id = OBJECT_ID('products');
+
+            IF @fk_details_products_name IS NOT NULL
+            BEGIN
+                EXEC('ALTER TABLE order_details DROP CONSTRAINT ' + @fk_details_products_name);
+                EXEC('ALTER TABLE order_details ADD FOREIGN KEY (product_id) REFERENCES products(id)');
+            END
+
+            -- 3. Asegurar que la FK de order_details a orders SÍ SEA CASCADE
+            DECLARE @fk_details_orders_name NVARCHAR(128);
+            SELECT @fk_details_orders_name = fk.name
+            FROM sys.foreign_keys fk
+            WHERE fk.parent_object_id = OBJECT_ID('order_details') AND fk.referenced_object_id = OBJECT_ID('orders');
+
+            IF @fk_details_orders_name IS NOT NULL AND (SELECT delete_referential_action FROM sys.foreign_keys WHERE name = @fk_details_orders_name) <> 1 -- 1 = CASCADE
+            BEGIN
+                EXEC('ALTER TABLE order_details DROP CONSTRAINT ' + @fk_details_orders_name);
+                EXEC('ALTER TABLE order_details ADD FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE');
+            END
+        `;
+        await sql.query(fixConstraintsQuery);
+        console.log('Constraints de Foreign Key verificados y corregidos.');
+        // --- Fin del parche de FKs ---
+
+
+        // Create order_details table if not exists
+        const createOrderDetailsTableQuery = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='order_details' and xtype='U')
+            CREATE TABLE order_details (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                order_id INT NOT NULL,
+                product_id INT NOT NULL,
+                quantity INT NOT NULL,
+                unit_price DECIMAL(10, 2) NOT NULL,
+                subtotal AS quantity * unit_price,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            );
+        `;
+        await sql.query(createOrderDetailsTableQuery);
+        console.log('Tabla order_details verificada/creada.');
 
     } catch (err) {
         console.error('Error al conectar o inicializar la base de datos:', err.message);
@@ -168,6 +234,22 @@ app.get('/api/products', async (req, res) => {
     try {
         const result = await sql.query`SELECT * FROM products`;
         res.json({ products: result.recordset });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const request = new sql.Request();
+        request.input('id', sql.Int, productId);
+        const result = await request.query`SELECT * FROM products WHERE id = @id`;
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado.' });
+        }
+        res.json({ product: result.recordset[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -268,6 +350,22 @@ app.get('/api/customers', async (req, res) => {
     }
 });
 
+app.get('/api/customers/:id', async (req, res) => {
+    try {
+        const customerId = req.params.id;
+        const request = new sql.Request();
+        request.input('id', sql.Int, customerId);
+        const result = await request.query`SELECT * FROM customers WHERE id = @id`;
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: 'Cliente no encontrado.' });
+        }
+        res.json({ customer: result.recordset[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/customers', async (req, res) => {
     try {
         const { name, email, phone, address } = req.body;
@@ -357,36 +455,130 @@ app.delete('/api/customers/:id', async (req, res) => {
 // --- Endpoints de Pedidos ---
 app.get('/api/orders', async (req, res) => {
     try {
-        const result = await sql.query`SELECT * FROM orders`;
+        const result = await sql.query`
+            SELECT o.id, o.numero_pedido, c.name as customer_name, o.order_date, o.total_amount, o.status, o.forma_pago
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.id
+            ORDER BY o.order_date DESC
+        `;
         res.json({ orders: result.recordset });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/orders', async (req, res) => {
+app.get('/api/orders/:id', async (req, res) => {
     try {
-        const { customer_id, total_amount, status } = req.body;
-        if (!customer_id || !total_amount || !status) {
-            return res.status(400).json({ error: 'customer_id, total_amount, and status are required.' });
-        }
+        const orderId = req.params.id;
 
-        const request = new sql.Request();
-        request.input('customer_id', sql.Int, customer_id);
-        request.input('total_amount', sql.Decimal(10, 2), total_amount);
-        request.input('status', sql.NVarChar, status);
-
-        const result = await request.query`
-            INSERT INTO orders (customer_id, total_amount, status)
-            VALUES (@customer_id, @total_amount, @status);
-            SELECT SCOPE_IDENTITY() AS id;
+        const orderRequest = new sql.Request();
+        orderRequest.input('id', sql.Int, orderId);
+        const orderResult = await orderRequest.query`
+            SELECT o.id, o.numero_pedido, c.name as customer_name, o.order_date, o.total_amount, o.status, o.forma_pago
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.id
+            WHERE o.id = @id
         `;
 
-        const newOrderId = result.recordset[0].id;
-        res.status(201).json({ message: 'Pedido creado exitosamente', id: newOrderId, customer_id, total_amount, status });
+        if (orderResult.recordset.length === 0) {
+            return res.status(404).json({ error: 'Pedido no encontrado.' });
+        }
+
+        const detailsRequest = new sql.Request();
+        detailsRequest.input('order_id', sql.Int, orderId);
+        const detailsResult = await detailsRequest.query`
+            SELECT od.id, od.product_id, p.name as product_name, od.quantity, od.unit_price, od.subtotal
+            FROM order_details od
+            JOIN products p ON od.product_id = p.id
+            WHERE od.order_id = @order_id
+        `;
+
+        const order = orderResult.recordset[0];
+        order.details = detailsResult.recordset;
+
+        res.json({ order });
 
     } catch (err) {
+        console.error('Error al obtener el pedido:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/orders', async (req, res) => {
+    const transaction = new sql.Transaction();
+    try {
+        const { customer_id, forma_pago, status, items } = req.body;
+
+        if (!customer_id || !forma_pago || !status || !items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Faltan datos requeridos para el pedido (cliente, forma de pago, estado o artículos).' });
+        }
+
+        await transaction.begin();
+
+        let total_amount = 0;
+        const productPrices = {};
+        
+        try {
+            for (const item of items) {
+                const productRequest = new sql.Request(transaction);
+                productRequest.input('product_id', sql.Int, item.product_id);
+                const productResult = await productRequest.query`SELECT price, name FROM products WHERE id = @product_id`;
+                if (productResult.recordset.length === 0) {
+                    throw new Error(`Producto con ID ${item.product_id} no encontrado en la base de datos.`);
+                }
+                const price = productResult.recordset[0].price;
+                productPrices[item.product_id] = price;
+                total_amount += price * item.quantity;
+            }
+        } catch (err) {
+            throw new Error(`Error al verificar los productos: ${err.message}`);
+        }
+
+        let newOrderId;
+        try {
+            const orderRequest = new sql.Request(transaction);
+            orderRequest.input('customer_id', sql.Int, customer_id);
+            orderRequest.input('total_amount', sql.Decimal(10, 2), total_amount);
+            orderRequest.input('status', sql.NVarChar, status);
+            orderRequest.input('forma_pago', sql.NVarChar, forma_pago);
+
+            const orderResult = await orderRequest.query`
+                INSERT INTO orders (customer_id, total_amount, status, forma_pago)
+                VALUES (@customer_id, @total_amount, @status, @forma_pago);
+                SELECT SCOPE_IDENTITY() AS id;
+            `;
+            newOrderId = orderResult.recordset[0].id;
+        } catch (err) {
+            throw new Error(`Error al insertar en la tabla 'orders': ${err.message}`);
+        }
+
+        try {
+            for (const item of items) {
+                const detailRequest = new sql.Request(transaction);
+                detailRequest.input('order_id', sql.Int, newOrderId);
+                detailRequest.input('product_id', sql.Int, item.product_id);
+                detailRequest.input('quantity', sql.Int, item.quantity);
+                detailRequest.input('unit_price', sql.Decimal(10, 2), productPrices[item.product_id]);
+                await detailRequest.query`
+                    INSERT INTO order_details (order_id, product_id, quantity, unit_price)
+                    VALUES (@order_id, @product_id, @quantity, @unit_price);
+                `;
+            }
+        } catch (err) {
+            throw new Error(`Error al insertar en la tabla 'order_details': ${err.message}`);
+        }
+
+        await transaction.commit();
+
+        res.status(201).json({ message: 'Pedido creado exitosamente', order_id: newOrderId });
+
+    } catch (err) {
+        // Si la transacción ha iniciado, se hace rollback
+        if (transaction._aborted === false && transaction._rolledBack === false) {
+            await transaction.rollback();
+        }
         console.error('Error al crear pedido:', err.message);
+        // Enviar el mensaje de error específico al cliente
         res.status(500).json({ error: err.message });
     }
 });
@@ -394,23 +586,30 @@ app.post('/api/orders', async (req, res) => {
 app.put('/api/orders/:id', async (req, res) => {
     try {
         const orderId = req.params.id;
-        const { customer_id, total_amount, status } = req.body;
+        const { status, forma_pago } = req.body; // Solo permitir actualizar status y forma_pago
 
-        if (!customer_id || !total_amount || !status) {
-            return res.status(400).json({ error: 'customer_id, total_amount, and status are required.' });
+        if (!status && !forma_pago) {
+            return res.status(400).json({ error: 'Se requiere al menos un campo para actualizar (status o forma_pago).' });
         }
+
+        let updateQuery = 'UPDATE orders SET ';
+        const params = [];
+        if (status) {
+            updateQuery += 'status = @status';
+            params.push({ name: 'status', type: sql.NVarChar, value: status });
+        }
+        if (forma_pago) {
+            if (status) updateQuery += ', ';
+            updateQuery += 'forma_pago = @forma_pago';
+            params.push({ name: 'forma_pago', type: sql.NVarChar, value: forma_pago });
+        }
+        updateQuery += ' WHERE id = @id';
 
         const request = new sql.Request();
         request.input('id', sql.Int, orderId);
-        request.input('customer_id', sql.Int, customer_id);
-        request.input('total_amount', sql.Decimal(10, 2), total_amount);
-        request.input('status', sql.NVarChar, status);
+        params.forEach(p => request.input(p.name, p.type, p.value));
 
-        const result = await request.query`
-            UPDATE orders
-            SET customer_id = @customer_id, total_amount = @total_amount, status = @status
-            WHERE id = @id;
-        `;
+        const result = await request.query(updateQuery);
 
         if (result.rowsAffected[0] === 0) {
             return res.status(404).json({ error: 'Pedido no encontrado.' });
@@ -431,6 +630,7 @@ app.delete('/api/orders/:id', async (req, res) => {
         const request = new sql.Request();
         request.input('id', sql.Int, orderId);
 
+        // La tabla order_details tiene ON DELETE CASCADE, por lo que no es necesario eliminar los detalles manualmente.
         const result = await request.query`
             DELETE FROM orders WHERE id = @id;
         `;
